@@ -18,11 +18,19 @@ Run the bot using::
 
     uv run bot.py
 """
-
 import os
+from datetime import timedelta
 
 from dotenv import load_dotenv
 from loguru import logger
+
+from modulate.processors.audio_tap import AudioTap
+from modulate.processors.mp3_input_processor import Mp3InputProcessor
+from modulate.processors.wav_input_processor import WavInputProcessor
+from modulate.transports.mp3_file_transport import Mp3AudioTransport, Mp3AudioTransportParams
+from modulate.transports.wav_file_transport import WavAudioTransport, WavAudioTransportParams
+from pipecat.processors.logger import FrameLogger
+from pipecat.services.deepgram.stt import DeepgramSTTService
 
 print("🚀 Starting Pipecat bot...")
 print("⏳ Loading models and imports (20 seconds, first run only)\n")
@@ -37,22 +45,16 @@ from pipecat.audio.vad.silero import SileroVADAnalyzer
 logger.info("✅ Silero VAD model loaded")
 
 from pipecat.audio.vad.vad_analyzer import VADParams
-from pipecat.frames.frames import LLMRunFrame
 
 logger.info("Loading pipeline components...")
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
-from pipecat.processors.aggregators.llm_context import LLMContext
-from pipecat.processors.aggregators.llm_response_universal import LLMContextAggregatorPair
 from pipecat.processors.frameworks.rtvi import RTVIConfig, RTVIObserver, RTVIProcessor
 from pipecat.runner.types import RunnerArguments
 from pipecat.runner.utils import create_transport
-from pipecat.services.cartesia.tts import CartesiaTTSService
-from pipecat.services.deepgram.stt import DeepgramSTTService
-from pipecat.services.openai.llm import OpenAILLMService
+from pipecat.services.whisper.stt import WhisperSTTService, Model
 from pipecat.transports.base_transport import BaseTransport, TransportParams
-from pipecat.transports.daily.transport import DailyParams
 
 logger.info("✅ All components loaded successfully!")
 
@@ -62,37 +64,31 @@ load_dotenv(override=True)
 async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     logger.info(f"Starting bot")
 
-    stt = DeepgramSTTService(api_key=os.getenv("DEEPGRAM_API_KEY"))
-
-    tts = CartesiaTTSService(
-        api_key=os.getenv("CARTESIA_API_KEY"),
-        voice_id="71a7ad14-091c-4e8e-a314-022ece01c121",  # British Reading Lady
-    )
-
-    llm = OpenAILLMService(api_key=os.getenv("OPENAI_API_KEY"))
-
-    messages = [
-        {
-            "role": "system",
-            "content": "You are a friendly AI assistant. Respond naturally and keep your answers conversational.",
-        },
-    ]
-
-    context = LLMContext(messages)
-    context_aggregator = LLMContextAggregatorPair(context)
+    # stt = DeepgramSTTService(api_key=os.getenv("DEEPGRAM_API_KEY"))
+    stt = WhisperSTTService(model=Model.DISTIL_MEDIUM_EN)
 
     rtvi = RTVIProcessor(config=RTVIConfig(config=[]))
+    frame_logger = FrameLogger("Transcription In")
+
+    transport_params = {
+        "webrtc": lambda: TransportParams(
+            audio_in_enabled=True,
+            audio_out_enabled=True,
+            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.2)),
+            turn_analyzer=LocalSmartTurnAnalyzerV3(),
+        ),
+    }
+
+    rtc_transport = await create_transport(runner_args, transport_params)
 
     pipeline = Pipeline(
         [
             transport.input(),  # Transport user input
-            rtvi,  # RTVI processor
+            frame_logger,
+            rtvi,  # RTVI event stream processor.
             stt,
-            context_aggregator.user(),  # User responses
-            llm,  # LLM
-            tts,  # TTS
-            transport.output(),  # Transport bot output
-            context_aggregator.assistant(),  # Assistant spoken responses
+            # transport.output()
+            rtc_transport.output(),  # Transport output.
         ]
     )
 
@@ -103,14 +99,12 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
             enable_usage_metrics=True,
         ),
         observers=[RTVIObserver(rtvi)],
+        idle_timeout_secs=timedelta(minutes=90).total_seconds(),
     )
 
     @transport.event_handler("on_client_connected")
     async def on_client_connected(transport, client):
         logger.info(f"Client connected")
-        # Kick off the conversation.
-        messages.append({"role": "system", "content": "Say hello and briefly introduce yourself."})
-        await task.queue_frames([LLMRunFrame()])
 
     @transport.event_handler("on_client_disconnected")
     async def on_client_disconnected(transport, client):
@@ -125,22 +119,32 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 async def bot(runner_args: RunnerArguments):
     """Main bot entry point for the bot starter."""
 
-    transport_params = {
-        "daily": lambda: DailyParams(
+    # transport_params = {
+    #     "webrtc": lambda: TransportParams(
+    #         audio_in_enabled=True,
+    #         audio_out_enabled=True,
+    #         vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.2)),
+    #         turn_analyzer=LocalSmartTurnAnalyzerV3(),
+    #     ),
+    # }
+    #
+    # transport = await create_transport(runner_args, transport_params)
+    # transport = WavAudioTransport(
+    #     WavAudioTransportParams(
+    #         audio_in_enabled=True,
+    #         wav_file_path="/mnt/array-fastest/home/guyep/playground/2026-01-09--modulate-pipecat/pipecat-quickstart/Audacity Forum Audio Test Theresa Martin V2 121724.wav",
+    #         vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.2)),
+    #         turn_analyzer=LocalSmartTurnAnalyzerV3(),
+    #     )
+    # )
+    transport = Mp3AudioTransport(
+        Mp3AudioTransportParams(
             audio_in_enabled=True,
-            audio_out_enabled=True,
+            mp3_file_path="/mnt/array-fastest/home/guyep/playground/2026-01-09--modulate-pipecat/pipecat-quickstart/bbc_6min_boredom_web_140821_6min_dealing_with_boredom_audio_au_bb.mp3",
             vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.2)),
             turn_analyzer=LocalSmartTurnAnalyzerV3(),
-        ),
-        "webrtc": lambda: TransportParams(
-            audio_in_enabled=True,
-            audio_out_enabled=True,
-            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.2)),
-            turn_analyzer=LocalSmartTurnAnalyzerV3(),
-        ),
-    }
-
-    transport = await create_transport(runner_args, transport_params)
+        )
+    )
 
     await run_bot(transport, runner_args)
 
