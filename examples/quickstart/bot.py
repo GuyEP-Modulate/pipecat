@@ -99,7 +99,6 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
             enable_usage_metrics=True,
         ),
         observers=[RTVIObserver(rtvi)],
-        idle_timeout_secs=timedelta(minutes=90).total_seconds(),
     )
 
     @transport.event_handler("on_client_connected")
