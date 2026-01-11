@@ -25,8 +25,6 @@ from dotenv import load_dotenv
 from loguru import logger
 
 from modulate.processors.audio_tap import AudioTap
-from modulate.processors.mp3_input_processor import Mp3InputProcessor
-from modulate.processors.wav_input_processor import WavInputProcessor
 from modulate.transports.mp3_file_transport import Mp3AudioTransport, Mp3AudioTransportParams
 from modulate.transports.wav_file_transport import WavAudioTransport, WavAudioTransportParams
 from pipecat.processors.logger import FrameLogger
