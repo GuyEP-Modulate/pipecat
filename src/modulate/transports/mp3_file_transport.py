@@ -12,7 +12,7 @@ from loguru import logger
 from pydub import AudioSegment
 
 from modulate.transports.null_output_transport import NullAudioOutputTransport
-from pipecat.frames.frames import InputAudioRawFrame, StartFrame
+from pipecat.frames.frames import InputAudioRawFrame, StartFrame, OutputAudioRawFrame
 from pipecat.processors.frame_processor import FrameProcessor
 from pipecat.transports.base_input import BaseInputTransport
 from pipecat.transports.base_transport import BaseTransport, TransportParams
@@ -96,6 +96,15 @@ class Mp3AudioInputTransport(BaseInputTransport):
             async for audio_frame in audio_iterator:
                 if audio_frame:
                     await self.push_audio_frame(audio_frame)
+
+                    # FIXME: For debugging -- echo audio to output.
+                    # Move this to a separate processor!
+                    await self.push_frame(
+                        OutputAudioRawFrame(
+                            audio=audio_frame.audio,
+                            sample_rate=audio_frame.sample_rate,
+                            num_channels=audio_frame.num_channels,
+                        ))
 
         except Exception as e:
             logger.error(f"{self} exception reading data: {e.__class__.__name__} ({e})")
