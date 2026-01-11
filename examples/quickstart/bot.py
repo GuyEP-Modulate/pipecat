@@ -65,17 +65,14 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     logger.info(f"Starting bot")
 
     # stt = DeepgramSTTService(api_key=os.getenv("DEEPGRAM_API_KEY"))
-    stt = WhisperSTTService(model=Model.DISTIL_MEDIUM_EN)
+    stt = WhisperSTTService(model=Model.LARGE_V3_TURBO)
 
     rtvi = RTVIProcessor(config=RTVIConfig(config=[]))
     frame_logger = FrameLogger("Transcription In")
 
     transport_params = {
         "webrtc": lambda: TransportParams(
-            audio_in_enabled=True,
             audio_out_enabled=True,
-            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.2)),
-            turn_analyzer=LocalSmartTurnAnalyzerV3(),
         ),
     }
 
