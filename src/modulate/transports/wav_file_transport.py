@@ -87,6 +87,9 @@ class WavAudioInputTransport(BaseInputTransport):
         try:
             audio_iterator = self._read_audio_frame()
 
+            # FIXME: This pipeline DOES NOT STOP even after the client disconnects. We might want to
+            #        handle this in a more graceful way to avoid excess cost. Then again, this is a
+            #        server-based transport so maybe the client being connected is irrelevant.
             async for audio_frame in audio_iterator:
                 if audio_frame:
                     await self.push_audio_frame(audio_frame)
