@@ -170,6 +170,7 @@ class STTService(AIService):
             direction: The direction of frame processing.
         """
         if self._muted:
+            logger.debug(f"{__class__} is muted. Returning early.")
             return
 
         # UserAudioRawFrame contains a user_id (e.g. Daily, Livekit)

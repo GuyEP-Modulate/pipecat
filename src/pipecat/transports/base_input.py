@@ -288,6 +288,8 @@ class BaseInputTransport(FrameProcessor):
         """
         if self._params.audio_in_enabled and not self._paused:
             await self._audio_in_queue.put(frame)
+        else:
+            logger.warning("Ignoring audio frame because either audio is not enabled or input is paused.")
 
     #
     # Frame processor
