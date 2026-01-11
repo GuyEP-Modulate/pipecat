@@ -20,6 +20,7 @@ Run the bot using::
 """
 import os
 from datetime import timedelta
+from pathlib import Path
 
 from dotenv import load_dotenv
 from loguru import logger
@@ -58,6 +59,10 @@ logger.info("✅ All components loaded successfully!")
 
 load_dotenv(override=True)
 
+AUDIO_FILE_DIRECTORY = Path(__file__).resolve().parent / "audio"
+
+WAV_SAMPLE_PATH = str(AUDIO_FILE_DIRECTORY / "audacity_forum_theresa_martin_121724.wav")
+MP3_SAMPLE_PATH = str(AUDIO_FILE_DIRECTORY / "bbc_6min_boredom_140821.mp3")
 
 async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     logger.info(f"Starting bot")
@@ -127,7 +132,7 @@ async def bot(runner_args: RunnerArguments):
     # transport = WavAudioTransport(
     #     WavAudioTransportParams(
     #         audio_in_enabled=True,
-    #         wav_file_path="/mnt/array-fastest/home/guyep/playground/2026-01-09--modulate-pipecat/pipecat-quickstart/Audacity Forum Audio Test Theresa Martin V2 121724.wav",
+    #         wav_file_path=WAV_SAMPLE_PATH,
     #         vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.2)),
     #         turn_analyzer=LocalSmartTurnAnalyzerV3(),
     #     )
@@ -135,7 +140,7 @@ async def bot(runner_args: RunnerArguments):
     transport = Mp3AudioTransport(
         Mp3AudioTransportParams(
             audio_in_enabled=True,
-            mp3_file_path="/mnt/array-fastest/home/guyep/playground/2026-01-09--modulate-pipecat/pipecat-quickstart/bbc_6min_boredom_web_140821_6min_dealing_with_boredom_audio_au_bb.mp3",
+            mp3_file_path=MP3_SAMPLE_PATH,
             vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.2)),
             turn_analyzer=LocalSmartTurnAnalyzerV3(),
         )
