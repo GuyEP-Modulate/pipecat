@@ -19,13 +19,11 @@ Run the bot using::
     uv run bot.py
 """
 import os
-from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
 from loguru import logger
 
-from modulate.processors.audio_tap import AudioTap
 from modulate.transports.mp3_file_transport import Mp3AudioTransport, Mp3AudioTransportParams
 from modulate.transports.wav_file_transport import WavAudioTransport, WavAudioTransportParams
 from pipecat.processors.logger import FrameLogger
@@ -67,8 +65,8 @@ MP3_SAMPLE_PATH = str(AUDIO_FILE_DIRECTORY / "bbc_6min_boredom_140821.mp3")
 async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     logger.info(f"Starting bot")
 
-    # stt = DeepgramSTTService(api_key=os.getenv("DEEPGRAM_API_KEY"))
-    stt = WhisperSTTService(model=Model.LARGE_V3_TURBO)
+    deepgram_stt = DeepgramSTTService(api_key=os.getenv("DEEPGRAM_API_KEY"))
+    whisper_stt = WhisperSTTService(model=Model.LARGE_V3_TURBO)
 
     rtvi = RTVIProcessor(config=RTVIConfig(config=[]))
     frame_logger = FrameLogger("Transcription In")
@@ -86,7 +84,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
             transport.input(),  # Transport user input
             frame_logger,
             rtvi,  # RTVI event stream processor.
-            stt,
+            whisper_stt,
             # transport.output()
             rtc_transport.output(),  # Transport output.
         ]
@@ -128,15 +126,15 @@ async def bot(runner_args: RunnerArguments):
     # }
     #
     # transport = await create_transport(runner_args, transport_params)
-    # transport = WavAudioTransport(
-    #     WavAudioTransportParams(
-    #         audio_in_enabled=True,
-    #         wav_file_path=WAV_SAMPLE_PATH,
-    #         vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.2)),
-    #         turn_analyzer=LocalSmartTurnAnalyzerV3(),
-    #     )
-    # )
-    transport = Mp3AudioTransport(
+    wav_transport = WavAudioTransport(
+        WavAudioTransportParams(
+            audio_in_enabled=True,
+            wav_file_path=WAV_SAMPLE_PATH,
+            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.2)),
+            turn_analyzer=LocalSmartTurnAnalyzerV3(),
+        )
+    )
+    mp3_transport = Mp3AudioTransport(
         Mp3AudioTransportParams(
             audio_in_enabled=True,
             mp3_file_path=MP3_SAMPLE_PATH,
@@ -145,7 +143,7 @@ async def bot(runner_args: RunnerArguments):
         )
     )
 
-    await run_bot(transport, runner_args)
+    await run_bot(mp3_transport, runner_args)
 
 
 if __name__ == "__main__":
