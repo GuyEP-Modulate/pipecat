@@ -4,9 +4,12 @@ version = "0.1.0"
 description = "Quickstart example for building voice AI bots with Pipecat"
 requires-python = ">=3.10"
 dependencies = [
-    "pipecat-ai[webrtc,daily,silero,deepgram,openai,cartesia,local-smart-turn-v3,runner]",
+    "pipecat-ai[webrtc,silero,deepgram,local-smart-turn-v3,runner]",
     "pipecat-ai-cli"
 ]
+
+[tool.uv.sources]
+pipecat-ai = { path = "./pipecat-ai", editable = true }
 
 [dependency-groups]
 dev = [
@@ -16,5 +19,6 @@ dev = [
 
 [tool.ruff]
 line-length = 100
+
 [tool.ruff.lint]
 select = ["I"]
