@@ -23,7 +23,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from loguru import logger
-
+from modulate.processors.input_audio_echo import InputAudioEchoProcessor
 from modulate.transports.mp3_file_transport import Mp3AudioTransport, Mp3AudioTransportParams
 from modulate.transports.wav_file_transport import WavAudioTransport, WavAudioTransportParams
 from pipecat.processors.logger import FrameLogger
@@ -76,6 +76,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     }
 
     rtc_transport = await create_transport(runner_args, transport_params)
+    input_echo = InputAudioEchoProcessor(suppress_interruptions=True)
 
     pipeline = Pipeline(
         [
@@ -83,6 +84,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
             frame_logger,
             rtvi,  # RTVI event stream processor.
             whisper_stt,
+            input_echo,
             # transport.output()
             rtc_transport.output(),  # Transport output.
         ]
