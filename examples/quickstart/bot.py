@@ -80,6 +80,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
     pipeline = Pipeline(
         [
+            # rtc_transport.input(),  # RTC transport input.
             transport.input(),  # Transport user input
             frame_logger,
             rtvi,  # RTVI event stream processor.
