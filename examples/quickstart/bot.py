@@ -27,7 +27,6 @@ from loguru import logger
 from modulate.transports.mp3_file_transport import Mp3AudioTransport, Mp3AudioTransportParams
 from modulate.transports.wav_file_transport import WavAudioTransport, WavAudioTransportParams
 from pipecat.processors.logger import FrameLogger
-from pipecat.services.deepgram.stt import DeepgramSTTService
 
 print("🚀 Starting Pipecat bot...")
 print("⏳ Loading models and imports (20 seconds, first run only)\n")
@@ -65,7 +64,6 @@ MP3_SAMPLE_PATH = str(AUDIO_FILE_DIRECTORY / "bbc_6min_boredom_140821.mp3")
 async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     logger.info(f"Starting bot")
 
-    deepgram_stt = DeepgramSTTService(api_key=os.getenv("DEEPGRAM_API_KEY"))
     whisper_stt = WhisperSTTService(model=Model.LARGE_V3_TURBO)
 
     rtvi = RTVIProcessor(config=RTVIConfig(config=[]))
