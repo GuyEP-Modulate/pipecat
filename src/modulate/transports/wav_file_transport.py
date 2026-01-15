@@ -82,6 +82,10 @@ class WavAudioInputTransport(BaseInputTransport):
             self._in_stream.close()
             self._in_stream = None
 
+        if self._receive_audio_task:
+            self._receive_audio_task.cancel()
+            self._receive_audio_task = None
+
     async def _receive_audio(self):
         """Background task for receiving audio frames from WAV."""
         try:

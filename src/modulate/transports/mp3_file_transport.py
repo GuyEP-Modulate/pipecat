@@ -86,7 +86,10 @@ class Mp3AudioInputTransport(BaseInputTransport):
         await super().cleanup()
         self._pcm_bytes = None
         self._cursor = 0
-        self._receive_audio_task = None
+
+        if self._receive_audio_task:
+            self._receive_audio_task.cancel()
+            self._receive_audio_task = None
 
     async def _receive_audio(self):
         """Background task for receiving audio frames from MP3."""
