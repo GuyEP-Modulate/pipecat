@@ -29,7 +29,9 @@ from pathlib import Path
 import av
 from dotenv import load_dotenv
 from loguru import logger
-from modulate.processors.input_audio_echo import InputAudioEchoProcessor
+from modulate.processors.echo_raw_audio_input_to_output_processor import (
+    EchoRawAudioInputToOutputProcessor,
+)
 from modulate.transports.mp3_file_transport import Mp3AudioTransport, Mp3AudioTransportParams
 from modulate.transports.wav_file_transport import WavAudioTransport, WavAudioTransportParams
 from pipecat.processors.logger import FrameLogger
@@ -168,7 +170,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         num_channels=OPUS_CHANNELS,
         buffer_size=int(OPUS_SAMPLE_RATE * OPUS_CHANNELS * 2 * OPUS_CLIP_SECONDS),
     )
-    input_echo = InputAudioEchoProcessor(suppress_interruptions=True)
+    input_echo = EchoRawAudioInputToOutputProcessor()
     last_audio_format = {"sample_rate": OPUS_SAMPLE_RATE, "num_channels": OPUS_CHANNELS}
 
     pipeline = Pipeline(
