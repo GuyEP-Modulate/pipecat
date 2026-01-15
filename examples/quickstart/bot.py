@@ -100,13 +100,13 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
         observers=[RTVIObserver(rtvi)],
     )
 
-    @transport.event_handler("on_client_connected")
+    @rtc_transport.event_handler("on_client_connected")
     async def on_client_connected(transport, client):
-        logger.info(f"Client connected")
+        logger.info("WebRTC client connected")
 
-    @transport.event_handler("on_client_disconnected")
+    @rtc_transport.event_handler("on_client_disconnected")
     async def on_client_disconnected(transport, client):
-        logger.info(f"Client disconnected")
+        logger.info("WebRTC client disconnected")
         await task.cancel()
 
     runner = PipelineRunner(handle_sigint=runner_args.handle_sigint)
