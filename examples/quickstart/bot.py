@@ -21,14 +21,11 @@ Run the bot using::
 This quickstart records 5-second Opus clips into examples/quickstart/recordings.
 Opus encoding requires the `webrtc` extra (PyAV via aiortc).
 """
-import asyncio
-import datetime
-import itertools
 from pathlib import Path
 
-import av
 from dotenv import load_dotenv
 from loguru import logger
+from modulate.opus_clip_writer import OpusClipWriter
 from modulate.processors.echo_raw_audio_input_to_output_processor import (
     EchoRawAudioInputToOutputProcessor,
 )
@@ -75,77 +72,6 @@ OPUS_RECORDINGS_DIR = Path(__file__).resolve().parent / "recordings"
 OPUS_CLIP_SECONDS = 5
 OPUS_SAMPLE_RATE = 48_000
 OPUS_CHANNELS = 1
-OPUS_FRAME_MS = 20
-
-
-def encode_opus_clip(audio: bytes, sample_rate: int, num_channels: int, filename: Path) -> None:
-    if num_channels not in (1, 2):
-        raise ValueError(f"Unsupported channel count for Opus: {num_channels}")
-
-    container = av.open(str(filename), mode="w", format="ogg")
-    stream = container.add_stream("libopus", rate=sample_rate)
-    stream.layout = "mono" if num_channels == 1 else "stereo"
-
-    samples_per_frame = max(1, int(sample_rate * OPUS_FRAME_MS / 1000))
-    bytes_per_frame = samples_per_frame * num_channels * 2
-
-    for offset in range(0, len(audio), bytes_per_frame):
-        chunk = audio[offset : offset + bytes_per_frame]
-
-        if len(chunk) < bytes_per_frame:
-            chunk += b"\x00" * (bytes_per_frame - len(chunk))
-
-        frame = av.AudioFrame(format="s16", layout=stream.layout, samples=samples_per_frame)
-        frame.sample_rate = sample_rate
-        frame.planes[0].update(chunk)
-
-        for packet in stream.encode(frame):
-            container.mux(packet)
-
-    for packet in stream.encode(None):
-        container.mux(packet)
-
-    container.close()
-
-
-class OpusClipWriter:
-    def __init__(self, recordings_dir: Path, clip_seconds: int):
-        self._recordings_dir = recordings_dir
-        self._clip_seconds = clip_seconds
-        self._pending = bytearray()
-        self._clip_index = itertools.count(1)
-
-    def _bytes_per_clip(self, sample_rate: int, num_channels: int) -> int:
-        return int(sample_rate * num_channels * 2 * self._clip_seconds)
-
-    async def append_audio(self, audio: bytes, sample_rate: int, num_channels: int) -> None:
-        if not audio:
-            return
-
-        self._pending.extend(audio)
-        bytes_per_clip = self._bytes_per_clip(sample_rate, num_channels)
-
-        while len(self._pending) >= bytes_per_clip:
-            clip_audio = bytes(self._pending[:bytes_per_clip])
-            del self._pending[:bytes_per_clip]
-            await self._write_clip(clip_audio, sample_rate, num_channels)
-
-    async def finalize(self, sample_rate: int, num_channels: int) -> None:
-        if not self._pending:
-            return
-
-        bytes_per_clip = self._bytes_per_clip(sample_rate, num_channels)
-        clip_audio = bytes(self._pending).ljust(bytes_per_clip, b"\x00")
-        self._pending = bytearray()
-        await self._write_clip(clip_audio, sample_rate, num_channels)
-
-    async def _write_clip(self, audio: bytes, sample_rate: int, num_channels: int) -> None:
-        self._recordings_dir.mkdir(parents=True, exist_ok=True)
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        clip_index = next(self._clip_index)
-        filename = self._recordings_dir / f"clip_{timestamp}_{clip_index:04d}.opus"
-        await asyncio.to_thread(encode_opus_clip, audio, sample_rate, num_channels, filename)
-        logger.info(f"Saved Opus clip to {filename}")
 
 
 async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
