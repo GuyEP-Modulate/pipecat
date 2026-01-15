@@ -21,6 +21,7 @@ Run the bot using::
 This quickstart records 5-second Opus clips into examples/quickstart/recordings.
 Opus encoding requires the `webrtc` extra (PyAV via aiortc).
 """
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -32,6 +33,7 @@ from modulate.processors.echo_raw_audio_input_to_output_processor import (
 from modulate.transports.mp3_file_transport import Mp3AudioTransport, Mp3AudioTransportParams
 from modulate.transports.wav_file_transport import WavAudioTransport, WavAudioTransportParams
 from pipecat.processors.logger import FrameLogger
+from pipecat.services.deepgram.stt import DeepgramSTTService
 
 print("🚀 Starting Pipecat bot...")
 print("⏳ Loading models and imports (20 seconds, first run only)\n")
@@ -56,7 +58,6 @@ from pipecat.processors.audio.audio_buffer_processor import AudioBufferProcessor
 from pipecat.processors.frameworks.rtvi import RTVIConfig, RTVIObserver, RTVIProcessor
 from pipecat.runner.types import RunnerArguments
 from pipecat.runner.utils import create_transport
-from pipecat.services.whisper.stt import Model, WhisperSTTService
 from pipecat.transports.base_transport import BaseTransport, TransportParams
 
 logger.info("✅ All components loaded successfully!")
@@ -77,7 +78,7 @@ OPUS_CHANNELS = 1
 async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     logger.info(f"Starting bot")
 
-    whisper_stt = WhisperSTTService(model=Model.LARGE_V3_TURBO)
+    deepgram_stt = DeepgramSTTService(api_key=os.getenv("DEEPGRAM_API_KEY"))
 
     rtvi = RTVIProcessor(config=RTVIConfig(config=[]))
     frame_logger = FrameLogger("Transcription In")
@@ -107,7 +108,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
             frame_logger,
             ParallelPipeline(
                 [
-                    whisper_stt,
+                    deepgram_stt,
                 ],
                 [
                     audio_buffer,
