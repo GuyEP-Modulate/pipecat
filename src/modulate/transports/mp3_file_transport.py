@@ -102,17 +102,15 @@ class Mp3AudioInputTransport(BaseInputTransport):
 
     async def _read_audio_frame(self):
         """Yield 20ms InputAudioRawFrame chunks from the decoded MP3."""
-
-        if self._pcm_bytes is None:
-            return
-
         chunk_ms = 20
+
         # frames per chunk @ target sample rate
         frames_per_chunk = int(self._sample_rate * chunk_ms / 1000)
+
         # PCM16 mono => 2 bytes per frame
         bytes_per_chunk = frames_per_chunk * 2
 
-        while self._cursor < len(self._pcm_bytes):
+        while self._pcm_bytes and self._cursor < len(self._pcm_bytes):
             chunk = self._pcm_bytes[self._cursor : self._cursor + bytes_per_chunk]
             self._cursor += len(chunk)
 

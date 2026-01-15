@@ -102,7 +102,6 @@ class WavAudioInputTransport(BaseInputTransport):
         Yields:
             InputAudioRawFrame objects containing audio data from the WAV.
         """
-
         target_rate = self._sample_rate
         wav_rate = self._in_stream.getframerate()
         wav_channels = self._in_stream.getnchannels()
@@ -111,13 +110,8 @@ class WavAudioInputTransport(BaseInputTransport):
         chunk_ms = 20
         frames_per_chunk = int(wav_rate * chunk_ms / 100)
 
-        while True:
-            pcm_bytes = self._in_stream.readframes(frames_per_chunk)
-
-            if not pcm_bytes:
-                return
-
-            # If WAV is stereo, downmix to mono first
+        while pcm_bytes := self._in_stream.readframes(frames_per_chunk):
+            # If WAV is stereo, downmix to mono first.
             if wav_channels > 1:
                 pcm = np.frombuffer(pcm_bytes, dtype=np.int16)
                 pcm = pcm.reshape(-1, wav_channels).mean(axis=1).astype(np.int16)
