@@ -72,7 +72,8 @@ class OpusClipWriter:
 
         container = av.open(str(filename), mode="w", format="ogg")
         stream = container.add_stream("libopus", rate=sample_rate)
-        stream.layout = "mono" if num_channels == 1 else "stereo"
+        layout = "mono" if num_channels == 1 else "stereo"
+        stream.layout = layout
 
         samples_per_frame = max(1, int(sample_rate * cls._OPUS_FRAME_MS / 1000))
         bytes_per_frame = samples_per_frame * num_channels * 2
@@ -83,7 +84,7 @@ class OpusClipWriter:
             if len(chunk) < bytes_per_frame:
                 chunk += b"\x00" * (bytes_per_frame - len(chunk))
 
-            frame = av.AudioFrame(format="s16", layout=stream.layout, samples=samples_per_frame)
+            frame = av.AudioFrame(format="s16", layout=layout, samples=samples_per_frame)
             frame.sample_rate = sample_rate
             frame.planes[0].update(chunk)
 
