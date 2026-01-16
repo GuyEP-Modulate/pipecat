@@ -83,13 +83,7 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
     rtvi = RTVIProcessor(config=RTVIConfig(config=[]))
     frame_logger = FrameLogger("Transcription In")
 
-    transport_params = {
-        "webrtc": lambda: TransportParams(
-            audio_out_enabled=True,
-        ),
-    }
-
-    rtc_transport = await create_transport(runner_args, transport_params)
+    rtc_transport = await build_rtc_transport(runner_args)
 
     opus_recorder = OpusClipWriter(OPUS_RECORDINGS_DIR, OPUS_CLIP_SECONDS)
     audio_buffer = AudioBufferProcessor(
@@ -165,17 +159,6 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
 async def bot(runner_args: RunnerArguments):
     """Main bot entry point for the bot starter."""
-
-    # transport_params = {
-    #     "webrtc": lambda: TransportParams(
-    #         audio_in_enabled=True,
-    #         audio_out_enabled=True,
-    #         vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.2)),
-    #         turn_analyzer=LocalSmartTurnAnalyzerV3(),
-    #     ),
-    # }
-    #
-    # transport = await create_transport(runner_args, transport_params)
     wav_transport = WavAudioTransport(
         WavAudioTransportParams(
             audio_in_enabled=True,
@@ -195,6 +178,20 @@ async def bot(runner_args: RunnerArguments):
 
     await run_bot(mp3_transport, runner_args)
 
+
+async def build_rtc_transport(runner_args: RunnerArguments):
+    rtc_transport_params = {
+        "webrtc": lambda: TransportParams(
+            audio_in_enabled=True,
+            audio_out_enabled=True,
+            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.2)),
+            turn_analyzer=LocalSmartTurnAnalyzerV3(),
+        ),
+    }
+
+    rtc_transport = await create_transport(runner_args, rtc_transport_params)
+
+    return rtc_transport
 
 if __name__ == "__main__":
     from pipecat.runner.run import main
