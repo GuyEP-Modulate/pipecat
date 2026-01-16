@@ -22,11 +22,12 @@ This quickstart records 5-second Opus clips into examples/quickstart/recordings.
 Opus encoding requires the `webrtc` extra (PyAV via aiortc).
 """
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
 from loguru import logger
-from modulate.opus_clip_writer import OpusClipWriter
+from modulate.local_opus_clip_writer import LocalOpusClipWriter
 from modulate.processors.echo_raw_audio_input_to_output_processor import (
     EchoRawAudioInputToOutputProcessor,
 )
@@ -70,7 +71,7 @@ WAV_SAMPLE_PATH = str(AUDIO_FILE_DIRECTORY / "audacity_forum_theresa_martin_1217
 MP3_SAMPLE_PATH = str(AUDIO_FILE_DIRECTORY / "bbc_6min_boredom_140821.mp3")
 
 OPUS_RECORDINGS_DIR = Path(__file__).resolve().parent / "recordings"
-OPUS_CLIP_SECONDS = 5
+OPUS_CLIP_LENGTH = timedelta(seconds=5)
 OPUS_SAMPLE_RATE = 48_000
 OPUS_CHANNELS = 1
 
@@ -85,11 +86,11 @@ async def run_bot(transport: BaseTransport, runner_args: RunnerArguments):
 
     rtc_transport = await build_rtc_transport(runner_args)
 
-    opus_recorder = OpusClipWriter(OPUS_RECORDINGS_DIR, OPUS_CLIP_SECONDS)
+    opus_recorder = LocalOpusClipWriter(OPUS_RECORDINGS_DIR, OPUS_CLIP_LENGTH)
     audio_buffer = AudioBufferProcessor(
         sample_rate=OPUS_SAMPLE_RATE,
         num_channels=OPUS_CHANNELS,
-        buffer_size=int(OPUS_SAMPLE_RATE * OPUS_CHANNELS * 2 * OPUS_CLIP_SECONDS),
+        buffer_size=int(OPUS_SAMPLE_RATE * OPUS_CHANNELS * 2 * OPUS_CLIP_LENGTH.total_seconds()),
     )
     input_echo = EchoRawAudioInputToOutputProcessor()
     last_audio_format = {"sample_rate": OPUS_SAMPLE_RATE, "num_channels": OPUS_CHANNELS}
@@ -176,7 +177,7 @@ async def bot(runner_args: RunnerArguments):
         )
     )
 
-    await run_bot(mp3_transport, runner_args)
+    await run_bot(wav_transport, runner_args)
 
 
 async def build_rtc_transport(runner_args: RunnerArguments):
