@@ -3,6 +3,7 @@
 from abc import ABC
 from datetime import timedelta
 from pathlib import Path
+from typing import BinaryIO, Union
 
 import av
 
@@ -56,12 +57,22 @@ class BaseOpusClipWriter(ABC):
         pass
 
     @classmethod
-    def _encode_opus_clip(cls, audio: bytes, sample_rate: int, num_channels: int, filename: Path) -> None:
-        """Encode PCM16 audio into an Opus audio file."""
+    def _encode_opus_clip(
+        cls, audio: bytes, sample_rate: int, num_channels: int, output: Union[Path, str, BinaryIO]
+    ) -> None:
+        """Encode PCM16 audio into an Opus audio file.
+
+        Args:
+            audio: The PCM16 audio bytes to write out.
+            sample_rate: The sampling frequency of the audio.
+            num_channels: The number of distinct audio channels.
+            output: The destination path (as either a Path or str) or binary stream to which to write the encoded data.
+        """
         if num_channels not in (1, 2):
             raise ValueError(f"Unsupported channel count for Opus: {num_channels}")
 
-        container = av.open(str(filename), mode="w", format="ogg")
+        container_target = str(output) if isinstance(output, Path) else output
+        container = av.open(container_target, mode="w", format="opus")
         stream = container.add_stream("libopus", rate=sample_rate)
         layout = "mono" if num_channels == 1 else "stereo"
         stream.layout = layout
